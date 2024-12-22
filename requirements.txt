@@ -4,4 +4,4 @@ scikit-image
 face-recognition
 mediapipe
 torch
-cv2
+opencv-python
