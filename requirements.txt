@@ -5,3 +5,9 @@ face-recognition
 mediapipe
 torch
 opencv-python
+
+def exclude_shadows(face_lab):
+    L_channel = face_lab[:, 0]  # Access the first column (L* values) of the 2D array
+    threshold = np.percentile(L_channel, 30)  # Exclude lowest 30%
+    shadow_mask = L_channel > threshold
+    return face_lab[shadow_mask]

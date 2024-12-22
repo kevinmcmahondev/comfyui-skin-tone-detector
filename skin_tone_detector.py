@@ -147,26 +147,36 @@ class SkinToneDetector:
     def _determine_skin_tone(self, face_region):
         skin_mask = get_skin_mask(face_region)
         skin_pixels = face_region[skin_mask > 0]
+
+        if skin_pixels.size == 0:
+            print("No skin pixels detected")
+            return "NOT_DETECTED"
+
+        # Convert skin pixels to LAB color space
         face_lab = color.rgb2lab(skin_pixels)
+
+        # Exclude shadowed pixels
         face_lab_non_shadow = exclude_shadows(face_lab)
-        avg_lab = np.median(face_lab_non_shadow, axis=(0, 1))
-        closest_tone = min(self.REFERENCE_TONES_LAB.items(),
-                           key=lambda x: self.calculate_lab_distance(avg_lab, x[1]))[0]
+
+        if face_lab_non_shadow.size == 0:
+            print("No non-shadow skin pixels detected")
+            return "NOT_DETECTED"
+
+        # Calculate the median LAB values
+        avg_lab = np.median(face_lab_non_shadow, axis=0)
+
+        # Determine the closest skin tone
+        closest_tone = min(
+            self.REFERENCE_TONES_LAB.items(),
+            key=lambda x: self.calculate_lab_distance(avg_lab, x[1])
+        )[0]
         print(f"Detected skin tone: {closest_tone}")
         return closest_tone
-
+    
     def _handle_no_detection(self):
         print("No person detected in image")
         return ("NOT_DETECTED",)
-    
-NODE_CLASS_MAPPINGS = {
-    "SkinToneDetector": SkinToneDetector
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "SkinToneDetector": "Skin Tone Detector"
-}
-
+ 
 def normalize_illumination(face_region):
     lab = cv2.cvtColor(face_region, cv2.COLOR_RGB2LAB)
     l, a, b = cv2.split(lab)
@@ -184,7 +194,23 @@ def get_skin_mask(face_region):
     return skin_mask
 
 def exclude_shadows(face_lab):
-    L_channel = face_lab[:, :, 0]
-    threshold = np.percentile(L_channel, 30)  # Exclude lowest 30%
-    shadow_mask = L_channel > threshold
+    # face_lab is of shape (N, 3)
+    l_channel = face_lab[:, 0]
+
+    # Compute the threshold to exclude the lowest 30% of L* values
+    threshold = np.percentile(l_channel, 30)
+
+    # Create a mask for pixels above the threshold (non-shadows)
+    shadow_mask = l_channel > threshold
+
+    # Return only the LAB values of non-shadow pixels
     return face_lab[shadow_mask]
+
+   
+NODE_CLASS_MAPPINGS = {
+    "SkinToneDetector": SkinToneDetector
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "SkinToneDetector": "Skin Tone Detector"
+}
