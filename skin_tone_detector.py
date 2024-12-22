@@ -110,7 +110,9 @@ class SkinToneDetector:
 
         primary_detection = self._get_primary_detection(results.detections)
         face_region = self._extract_face_region(image_np, primary_detection)
-        return self._determine_skin_tone(face_region)
+        face_region_norm = normalize_illumination(face_region)
+        face_lab = color.rgb2lab(face_region_norm)
+        return self._determine_skin_tone(face_lab)
 
     def _prepare_image(self, image):
         if isinstance(image, torch.Tensor):
@@ -142,8 +144,11 @@ class SkinToneDetector:
         return image_np[y:y+height, x:x+width]
 
     def _determine_skin_tone(self, face_region):
-        face_lab = color.rgb2lab(face_region)
-        avg_lab = np.mean(face_lab, axis=(0, 1))
+        skin_mask = get_skin_mask(face_region)
+        skin_pixels = face_region[skin_mask > 0]
+        face_lab = color.rgb2lab(skin_pixels)
+        face_lab_non_shadow = exclude_shadows(face_lab)
+        avg_lab = np.median(face_lab_non_shadow, axis=(0, 1))
         closest_tone = min(self.REFERENCE_TONES_LAB.items(),
                            key=lambda x: self.calculate_lab_distance(avg_lab, x[1]))[0]
         print(f"Detected skin tone: {closest_tone}")
@@ -160,3 +165,28 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SkinToneDetector": "Skin Tone Detector"
 }
+
+import cv2
+
+
+def normalize_illumination(face_region):
+    lab = cv2.cvtColor(face_region, cv2.COLOR_RGB2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    l_norm = clahe.apply(l)
+    lab_norm = cv2.merge((l_norm, a, b))
+    face_region_norm = cv2.cvtColor(lab_norm, cv2.COLOR_LAB2RGB)
+    return face_region_norm
+
+def get_skin_mask(face_region):
+    hsv = cv2.cvtColor(face_region, cv2.COLOR_RGB2HSV)
+    lower_skin = np.array([0, 20, 70], dtype=np.uint8)
+    upper_skin = np.array([20, 255, 255], dtype=np.uint8)
+    skin_mask = cv2.inRange(hsv, lower_skin, upper_skin)
+    return skin_mask
+
+def exclude_shadows(face_lab):
+    L_channel = face_lab[:, :, 0]
+    threshold = np.percentile(L_channel, 30)  # Exclude lowest 30%
+    shadow_mask = L_channel > threshold
+    return face_lab[shadow_mask]
