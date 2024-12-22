@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-skin-tone-detector"
+description = "A ComfyUI node that detects the skin tone of a person in an image and matches it to the standard emoji skin tone palette."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["numpy", "Pillow", "scikit-image", "face-recognition", "mediapipe"]
+
+[project.urls]
+Repository = "https://github.com/kevinmcmahondev/comfyui-skin-tone-detector"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "comfyui-skin-tone-detector"
+Icon = ""
