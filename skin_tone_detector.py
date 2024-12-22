@@ -5,7 +5,7 @@ Detects skin tone from input image and matches to emoji skin tone palette
 
 import mediapipe as mp
 import numpy as np
-import torch as torch
+import torch
 from PIL import Image
 from skimage import color
 
