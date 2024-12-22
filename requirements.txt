@@ -3,3 +3,4 @@ Pillow
 scikit-image
 face-recognition
 mediapipe
+torch
