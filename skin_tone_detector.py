@@ -3,6 +3,7 @@ Skin Tone Detector node for ComfyUI
 Detects skin tone from input image and matches to emoji skin tone palette
 """
 
+import cv2
 import mediapipe as mp
 import numpy as np
 import torch
@@ -165,9 +166,6 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SkinToneDetector": "Skin Tone Detector"
 }
-
-import cv2
-
 
 def normalize_illumination(face_region):
     lab = cv2.cvtColor(face_region, cv2.COLOR_RGB2LAB)
